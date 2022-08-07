@@ -56,7 +56,7 @@ export class AddressValidation implements IValidation {
   private readonly minLengthValidator: MinLengthValidator =
     new MinLengthValidator(5);
   private readonly zipCodeValidator: RegularExpressionValidator =
-    new RegularExpressionValidator(`^[0-9]{5}(?:-[0-9]{4})?$`);
+    new RegularExpressionValidator("^[0-9]{5}(?:-[0-9]{4})?$");
 
   public Validate(state: IPersonState, errors: string[]): void {
     if (!this.minLengthValidator.IsValid(state.address1)) {
@@ -77,7 +77,7 @@ export class AddressValidation implements IValidation {
 export class PhoneValidation implements IValidation {
   private readonly regexValidator: RegularExpressionValidator =
     new RegularExpressionValidator(
-      `^(?:\\((?:[0-9]{3})\\)|(?:[0-9]{3})[-.]?(?:[0-9]{3})[-. ]?(?:[0-9]{4})$`
+      "^(?:\\((?:[0-9]{3})\\)|(?:[0-9]{3})[-.]?(?:[0-9]{3})[-. ]?(?:[0-9]{4}))$"
     );
 
   private readonly minLengthValidator: MinLengthValidator =

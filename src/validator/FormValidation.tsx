@@ -9,13 +9,14 @@ interface IValidationProps {
 
 export function FormValidation({CurrentState, CanSave}: IValidationProps) : JSX.Element {
     var failures: string[] = Array<string>();
-    const validations: IValidation[] = Array<IValidation>();
+    let validations: IValidation[];
     var [errors,setErrors] =  useState(Array<JSX.Element>()) ;
 
     const Validate = () => {
+        validations = Array<IValidation>()
         validations.push(new PersonValidation());
-        // validations.push(new AddressValidation());
-        // validations.push(new PhoneValidation());
+        validations.push(new AddressValidation());
+        validations.push(new PhoneValidation());
         validations.forEach(validation => {
             validation.Validate(CurrentState, failures);
         });
@@ -29,7 +30,7 @@ export function FormValidation({CurrentState, CanSave}: IValidationProps) : JSX.
         setErrors(failures.map( (failure) => {
             return (<div key={failure}><label>{failure}</label></div>);
         })) 
-    })
+    }, [])
 
         
     return (<div>{errors}</div>);
