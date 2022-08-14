@@ -1,4 +1,6 @@
-import React, { useState } from "react";
+import React, { useEffect, useState } from "react";
+import { Database, PersonRecord } from "./Database/IRecordState";
+import { PersonalDetailsTableBuilder } from "./PersonalDetailsTableBuilder";
 import { IPersonState } from "./utils/ipersonstate";
 import { IProps } from "./utils/iprops";
 import { FormValidation } from "./validator/FormValidation";
@@ -7,6 +9,42 @@ function PersonalDetails({ DefaultState }: IProps): JSX.Element {
   const [defaultState, setDefaultState] = useState<IPersonState>(DefaultState);
   const [state, setState] = useState<IPersonState>(DefaultState);
   const [canSave, setCanSave] = useState(true);
+
+  let dataLayer: Database<PersonRecord>;
+  let people: IPersonState[];
+
+  useEffect(() => {
+    const tableBuilder = new PersonalDetailsTableBuilder();
+    dataLayer= new Database(tableBuilder.Build())
+    let local_people = null;
+    if (people) {
+      local_people = people.map((p) => {
+        return (
+          <div>
+            <div key={p.personid}><label>{p.firstname} {p.lastname}</label></div>
+            <button value={p.personid} onClick={setActive}>Edit</button>
+            <button value={p.personid} onClick={deletePerson}>Delete</button>
+          </div>
+        )
+      })
+    }
+
+  }, [])
+
+  const setActive = (event: any) => {
+    const person: string = event.target.value;
+    const state = people.find((element: IPersonState) => {
+      return element.personid === person;
+    })
+    if (state) {
+      setState(state);
+    }
+  }
+
+  const deletePerson = () => {
+
+  }
+
 
   const userCanSave = (hasErrors: boolean) => {
     setCanSave(hasErrors);
