@@ -2,97 +2,99 @@ import { IPersonState } from "../utils/ipersonstate";
 import { ITable } from "./TableBuilder";
 
 export interface IRecordState {
-    IsActive: boolean;
+  IsActive: boolean;
 }
 
 export class RecordState implements IRecordState {
-    public IsActive: boolean;
+  public IsActive: boolean;
 }
 
 export type PersonRecord = RecordState & IPersonState;
 
-export class Database<T extends RecordState>{
-    private readonly indexDb: IDBFactory;
-    private database: IDBDatabase | null = null;
-    private readonly table: ITable;
-    constructor(table: ITable) {
-        this.indexDb = window.indexedDB;
-        this.table = table;
-        this.OpenDatabase();
+export class Database<T extends RecordState> {
+  private readonly indexDb: IDBFactory;
+  private database: IDBDatabase | null = null;
+  private readonly table: ITable;
+  constructor(table: ITable) {
+    this.indexDb = window.indexedDB;
+    this.table = table;
+    this.OpenDatabase();
+  }
+
+  private OpenDatabase(): void {
+    const open = this.indexDb.open(this.table.Database(), this.table.Version());
+
+    open.onupgradeneeded = (e: any) => {
+      this.UpgradeDatabase(e.target.result);
+    };
+
+    open.onsuccess = (e: any) => {
+      this.database = e.target.result;
+    };
+  }
+
+  private UpgradeDatabase(database: IDBDatabase) {
+    this.database = database;
+    this.table.Build(this.database);
+  }
+
+  private GetObjectStore(): IDBObjectStore | null {
+    try {
+      const transaction: IDBTransaction = this.database!.transaction(
+        this.table.TableName(),
+        "readwrite"
+      );
+      const dbStore: IDBObjectStore = transaction.objectStore(
+        this.table.TableName()
+      );
+      return dbStore;
+    } catch (Error) {
+      return null;
     }
+  }
 
-    private OpenDatabase() : void {
-        const open = this.indexDb.open(this.table.Database(), this.table.Version());
+  public Create(state: T): void {
+    const dbStore = this.GetObjectStore();
+    dbStore!.add(state);
+  }
 
-        open.onupgradeneeded = (e: any) => {
-            this.UpgradeDatabase(e.target.result);
+  public Read(): Promise<T[]> {
+    return new Promise((response) => {
+      const dbStore = this.GetObjectStore();
+      const items: T[] = new Array<T>();
+      const request: IDBRequest = dbStore!.openCursor();
+      request.onsuccess = (e: any) => {
+        const cursor: IDBCursorWithValue = e.target.result;
+        if (cursor) {
+          const result: T = cursor.value;
+          if (result.IsActive) {
+            items.push(result);
+          }
+          cursor.continue();
+        } else {
+          response(items);
         }
+      };
+    });
+  }
 
-        open.onsuccess = (e: any) => {
-            this.database = e.target.result;
-        }
-    }
+  public Update(state: T): Promise<void> {
+    return new Promise((resolve) => {
+      const dbStore = this.GetObjectStore();
+      const innerRequest: IDBRequest = dbStore!.put(state);
+      innerRequest.onsuccess = () => {
+        resolve();
+      };
+    });
+  }
 
-    private UpgradeDatabase(database: IDBDatabase) {
-        this.database = database;
-        this.table.Build(this.database);
-    }
-
-    private GetObjectStore() : IDBObjectStore | null {
-        try {
-            const transaction: IDBTransaction = this.database!.transaction(this.table.TableName(), "readwrite");
-            const dbStore: IDBObjectStore = transaction.objectStore(this.table.TableName());
-            return dbStore;
-        } catch (Error) {
-            return null;
-        }
-    }
-
-    public Create(state: T): void {
-        const dbStore = this.GetObjectStore();
-        dbStore!.add(state);
-    }
-
-    public Read(): Promise<T[]> {
-        return new Promise((response) => {
-            const dbStore = this.GetObjectStore();
-            const items: T[] = new Array<T>();
-            const request: IDBRequest = dbStore!.openCursor();
-            request.onsuccess = (e: any) => {
-                const cursor: IDBCursorWithValue = e.target.result;
-                if (cursor) {
-                    const result: T = cursor.value;
-                    if (result.IsActive) {
-                        items.push(result);
-                    }
-                    cursor.continue();
-                }
-                else {
-                    response(items);
-                }
-            }
-        })
-    }
-
-    public Update(state: T) : Promise<void> {
-        return new Promise((resolve) => {
-            const dbStore = this.GetObjectStore();
-            const innerRequest: IDBRequest = dbStore!.put(state);
-            innerRequest.onsuccess = () => {
-                resolve();
-            } 
-        })
-    }
-
-    public Delete(idx: number | string) : Promise<void> {
-        return new Promise((resolve) => {
-            const dbStore = this.GetObjectStore();
-            const innerRequest: IDBRequest = dbStore!.delete(idx.toString());
-            innerRequest.onsuccess = () => {
-                resolve();
-            }
-        })
-
-    }
-
+  public Delete(idx: number | string): Promise<void> {
+    return new Promise((resolve) => {
+      const dbStore = this.GetObjectStore();
+      const innerRequest: IDBRequest = dbStore!.delete(idx.toString());
+      innerRequest.onsuccess = () => {
+        resolve();
+      };
+    });
+  }
 }

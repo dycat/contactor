@@ -8,15 +8,11 @@ interface IValidationProps {
 }
 
 export function FormValidation({CurrentState, CanSave}: IValidationProps) : JSX.Element {
-    var failures: string[] = Array<string>();
+    var failures: string[];
     let validations: IValidation[];
     var [errors,setErrors] =  useState(Array<JSX.Element>()) ;
 
     const Validate = () => {
-        validations = Array<IValidation>()
-        validations.push(new PersonValidation());
-        validations.push(new AddressValidation());
-        validations.push(new PhoneValidation());
         validations.forEach(validation => {
             validation.Validate(CurrentState, failures);
         });
@@ -24,13 +20,16 @@ export function FormValidation({CurrentState, CanSave}: IValidationProps) : JSX.
     }
 
     useEffect(() => {
-        console.log(CurrentState)
-        console.log(failures)
+        failures = Array<string>()
+        validations = Array<IValidation>()
+        validations.push(new PersonValidation());
+        validations.push(new AddressValidation());
+        validations.push(new PhoneValidation());
         Validate();
         setErrors(failures.map( (failure) => {
             return (<div key={failure}><label>{failure}</label></div>);
         })) 
-    }, [])
+    }, [CurrentState])
 
         
     return (<div>{errors}</div>);

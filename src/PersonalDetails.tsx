@@ -1,54 +1,110 @@
 import React, { useEffect, useState } from "react";
-import { Database, PersonRecord } from "./Database/IRecordState";
+import { Database, IRecordState, PersonRecord, RecordState } from "./Database/IRecordState";
 import { PersonalDetailsTableBuilder } from "./PersonalDetailsTableBuilder";
 import { IPersonState } from "./utils/ipersonstate";
 import { IProps } from "./utils/iprops";
 import { FormValidation } from "./validator/FormValidation";
 
 function PersonalDetails({ DefaultState }: IProps): JSX.Element {
-  const [defaultState, setDefaultState] = useState<IPersonState>(DefaultState);
+  const [defaultState] = useState<IPersonState>(DefaultState);
   const [state, setState] = useState<IPersonState>(DefaultState);
   const [canSave, setCanSave] = useState(true);
 
   let dataLayer: Database<PersonRecord>;
   let people: IPersonState[];
+  const [peopleHTML, setPeopleHTML] = useState(Array<JSX.Element>());
 
   useEffect(() => {
     const tableBuilder = new PersonalDetailsTableBuilder();
-    dataLayer= new Database(tableBuilder.Build())
+    dataLayer = new Database(tableBuilder.Build());
     let local_people = null;
     if (people) {
       local_people = people.map((p) => {
         return (
           <div>
-            <div key={p.personid}><label>{p.firstname} {p.lastname}</label></div>
-            <button value={p.personid} onClick={setActive}>Edit</button>
-            <button value={p.personid} onClick={deletePerson}>Delete</button>
+            <div key={p.personid}>
+              <label>
+                {p.firstname} {p.lastname}
+              </label>
+            </div>
+            <button value={p.personid} onClick={setActive}>
+              Edit
+            </button>
+            <button value={p.personid} onClick={deleteRecord}>
+              Delete
+            </button>
           </div>
-        )
-      })
-    }
+        );
+      });
 
-  }, [])
+      setPeopleHTML(local_people);
+    }
+  }, []);
 
   const setActive = (event: any) => {
     const person: string = event.target.value;
     const state = people.find((element: IPersonState) => {
       return element.personid === person;
-    })
+    });
     if (state) {
       setState(state);
     }
-  }
+  };
 
-  const deletePerson = () => {
+  const loadPeople = () => {
+    people = new Array<PersonRecord>();
+    dataLayer.Read().then((item) => {
+      people = item;
+      clear();
+    });
+  };
 
-  }
+  const savePerson = () => {
+    if (!canSave) {
+      alert("Connot save this record with missing or incorrecty items");
+      return;
+    }
+    const personState : IRecordState = new RecordState();
+    personState.IsActive = true;
+    const newState : PersonRecord = {...state, ...personState};
+    if (newState.personid === "") {
+      newState.personid = Date.now().toString();
+      dataLayer.Create(newState);
+      loadPeople();
+      clear();
+    } else {
+      dataLayer.Update(newState).then((rsn) => loadPeople());
+    }
+  };
 
+  const deleteRecord = (event: any) => {
+    const person = event.target.value;
+    deletePerson(person);
+
+  };
+
+  const deletePerson = async (person: string) => {
+    const foundPerson = people.find((element: IPersonState) => {
+      return element.personid === person;
+    });
+    if (!foundPerson) {
+      return;
+    }
+    const personState: IRecordState = new RecordState();
+    personState.IsActive = false;
+    const stateToBeDeleted: PersonRecord = { ...foundPerson, ...personState};
+    await dataLayer.Update(stateToBeDeleted);
+    loadPeople();
+    clear();
+  };
+
+  const clear = () => {
+    setState(defaultState);
+  };
 
   const userCanSave = (hasErrors: boolean) => {
     setCanSave(hasErrors);
-  }
+  };
 
   const updateBinding = (event: React.FormEvent<HTMLInputElement>) => {
     const target = event.target as HTMLInputElement;
@@ -112,7 +168,6 @@ function PersonalDetails({ DefaultState }: IProps): JSX.Element {
           <label htmlFor="firstname">First Name</label>
           <input
             type="text"
-            name=""
             id="firstname"
             placeholder="First Name"
             value={state.firstname}
@@ -122,7 +177,6 @@ function PersonalDetails({ DefaultState }: IProps): JSX.Element {
           <label htmlFor="lastname">Last Name</label>
           <input
             type="text"
-            name=""
             id="lastname"
             placeholder="Last Name"
             value={state.lastname}
@@ -130,34 +184,78 @@ function PersonalDetails({ DefaultState }: IProps): JSX.Element {
           />
 
           <label htmlFor="addr1">Address line 1</label>
-          <input type="text" name="" id="addr1" placeholder="Address line 1" />
+          <input
+            type="text"
+            id="addr1"
+            value={state.address1!}
+            onChange={updateBinding}
+            placeholder="Address line 1"
+          />
 
           <label htmlFor="addr2">Address line 2</label>
-          <input type="text" name="" id="addr2" placeholder="Address line 2" />
+          <input
+            type="text"
+            id="addr2"
+            value={state.address2!}
+            onChange={updateBinding}
+            placeholder="Address line 2"
+          />
 
           <label htmlFor="town">Town</label>
-          <input type="text" name="" id="town" placeholder="Town" />
+          <input
+            type="text"
+            id="town"
+            value={state.town}
+            onChange={updateBinding}
+            placeholder="Town"
+          />
 
           <label htmlFor="country">Country</label>
-          <input type="text" name="" id="country" placeholder="Country" />
+          <input
+            type="text"
+            id="country"
+            value={state.country}
+            onChange={updateBinding}
+            placeholder="Country"
+          />
 
           <label htmlFor="postcode">Postal/Zipcode</label>
-          <input type="text" name="" id="postcode" />
+          <input
+            type="text"
+            id="postcode"
+            value={state.postcode}
+            onChange={updateBinding}
+          />
 
           <label htmlFor="phonenumber">Phone Number</label>
-          <input type="text" name="" id="phonenumber" />
+          <input
+            type="text"
+            id="phonenumber"
+            value={state.phonenumber}
+            onChange={updateBinding}
+          />
 
           <label htmlFor="dateofbirth">Date of birth</label>
-          <input type="date" name="" id="dateofbirth" />
+          <input
+            type="date"
+            name=""
+            id="dateofbirth"
+            value={state.dateofbirth}
+            onChange={updateBinding}
+          />
 
-          <button>Save</button>
-          <button>Clear</button>
+          <button onClick={savePerson}>Save</button>
+          <button onClick={clear}>Clear</button>
 
-          <FormValidation CurrentState={state} CanSave={userCanSave}></FormValidation>
+          <FormValidation
+            CurrentState={state}
+            CanSave={userCanSave}
+          ></FormValidation>
         </div>
 
-        <button>Load</button>
-        <button>New Person</button>
+        <div>{peopleHTML}</div>
+        <button onClick={loadPeople}>Load</button>
+        <button onClick={clear}>New Person</button>
       </div>
     </div>
   );
